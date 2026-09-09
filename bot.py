@@ -22,21 +22,82 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def admin_menu():
+# =========================
+# USER MENU
+# =========================
+
+def user_menu():
     keyboard = [
         [
-            InlineKeyboardButton("📊 آمار", callback_data="stats"),
-            InlineKeyboardButton("👥 کاربران", callback_data="users"),
+            InlineKeyboardButton(
+                "🛒 خرید VPN",
+                callback_data="buy_vpn",
+            ),
+            InlineKeyboardButton(
+                "📦 سرویس‌های من",
+                callback_data="my_services",
+            ),
         ],
         [
-            InlineKeyboardButton("📢 پیام همگانی", callback_data="broadcast"),
+            InlineKeyboardButton(
+                "💰 کیف پول",
+                callback_data="wallet",
+            ),
+            InlineKeyboardButton(
+                "💎 پلن‌ها",
+                callback_data="plans",
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                "📞 پشتیبانی",
+                callback_data="support",
+            ),
+            InlineKeyboardButton(
+                "ℹ️ راهنما",
+                callback_data="help",
+            ),
         ],
     ]
 
     return InlineKeyboardMarkup(keyboard)
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# =========================
+# ADMIN MENU
+# =========================
+
+def admin_menu():
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "📊 آمار",
+                callback_data="stats",
+            ),
+            InlineKeyboardButton(
+                "👥 کاربران",
+                callback_data="users",
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                "📢 پیام همگانی",
+                callback_data="broadcast",
+            ),
+        ],
+    ]
+
+    return InlineKeyboardMarkup(keyboard)
+
+
+# =========================
+# START
+# =========================
+
+async def start(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
     user = update.effective_user
 
     add_user(user)
@@ -46,15 +107,25 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🚀 سرویس سریع و پایدار\n"
         "🔐 مدیریت آسان سرویس\n"
         "💎 پشتیبانی اختصاصی\n\n"
-        "برای شروع از منوی ربات استفاده کنید."
+        "👇 از منوی زیر انتخاب کنید:",
+        reply_markup=user_menu(),
     )
 
 
-async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# =========================
+# ADMIN COMMAND
+# =========================
+
+async def admin(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
     user_id = update.effective_user.id
 
     if user_id not in ADMIN_IDS:
-        await update.message.reply_text("⛔ دسترسی غیرمجاز.")
+        await update.message.reply_text(
+            "⛔ دسترسی غیرمجاز."
+        )
         return
 
     await update.message.reply_text(
@@ -64,59 +135,210 @@ async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+# =========================
+# CALLBACK HANDLER
+# =========================
+
 async def callback_handler(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
 ):
     query = update.callback_query
+    data = query.data
+    user_id = query.from_user.id
+
+    # =========================
+    # ADMIN CALLBACKS
+    # =========================
+
+    if data in {
+        "stats",
+        "users",
+        "broadcast",
+    }:
+
+        if user_id not in ADMIN_IDS:
+            await query.answer(
+                "⛔ دسترسی غیرمجاز.",
+                show_alert=True,
+            )
+            return
+
+        await query.answer()
+
+        if data == "stats":
+            stats = get_stats()
+
+            text = (
+                "╔════════════════════╗\n"
+                "       📊 آمار ربات\n"
+                "╚════════════════════╝\n\n"
+                f"👥 کل کاربران: {stats['total']}\n"
+                f"🟢 کاربران فعال: {stats['active']}\n"
+                f"🆕 کاربران امروز: {stats['today']}\n\n"
+                "━━━━━━━━━━━━━━━━━━\n"
+                "🤖 وضعیت ربات: 🟢 ONLINE"
+            )
+
+            await query.edit_message_text(
+                text,
+                reply_markup=admin_menu(),
+            )
+
+        elif data == "users":
+            users = get_all_users()
+
+            await query.edit_message_text(
+                "👥 مدیریت کاربران\n\n"
+                f"🟢 تعداد کاربران: {len(users)}\n\n"
+                "بخش مدیریت کاربران در نسخه بعدی توسعه داده می‌شود.",
+                reply_markup=admin_menu(),
+            )
+
+        elif data == "broadcast":
+            context.user_data["broadcast_mode"] = True
+
+            await query.edit_message_text(
+                "📢 پیام همگانی\n\n"
+                "پیامی که می‌خواهی برای کاربران ارسال شود را "
+                "در پیام بعدی بفرست.\n\n"
+                "برای لغو، /cancel را بزن."
+            )
+
+        return
+
+    # =========================
+    # USER CALLBACKS
+    # =========================
 
     await query.answer()
 
-    user_id = query.from_user.id
-
-    if user_id not in ADMIN_IDS:
-        await query.answer("⛔ دسترسی غیرمجاز.", show_alert=True)
-        return
-
-    if query.data == "stats":
-        stats = get_stats()
-
-        text = (
-            "╔════════════════════╗\n"
-            "       📊 آمار ربات\n"
-            "╚════════════════════╝\n\n"
-            f"👥 کل کاربران: {stats['total']}\n"
-            f"🟢 کاربران فعال: {stats['active']}\n"
-            f"🆕 کاربران امروز: {stats['today']}\n\n"
-            "━━━━━━━━━━━━━━━━━━\n"
-            "🤖 وضعیت ربات: 🟢 ONLINE"
-        )
-
+    if data == "buy_vpn":
         await query.edit_message_text(
-            text,
-            reply_markup=admin_menu(),
+            "🛒 خرید VPN\n\n"
+            "💎 پلن موردنظر خود را انتخاب کنید:\n\n"
+            "فعلاً بخش خرید در حال آماده‌سازی است.",
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton(
+                        "💎 مشاهده پلن‌ها",
+                        callback_data="plans",
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        "🔙 بازگشت",
+                        callback_data="back_home",
+                    )
+                ],
+            ]),
         )
 
-    elif query.data == "users":
-        users = get_all_users()
-
+    elif data == "my_services":
         await query.edit_message_text(
-            "👥 مدیریت کاربران\n\n"
-            f"🟢 کاربران قابل دسترسی: {len(users)}\n\n"
-            "بخش مدیریت کاربران در نسخه بعدی توسعه داده می‌شود.",
-            reply_markup=admin_menu(),
+            "📦 سرویس‌های من\n\n"
+            "هنوز سرویسی برای حساب شما ثبت نشده است.\n\n"
+            "برای خرید سرویس از گزینه خرید VPN استفاده کنید.",
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton(
+                        "🛒 خرید VPN",
+                        callback_data="buy_vpn",
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        "🔙 بازگشت",
+                        callback_data="back_home",
+                    )
+                ],
+            ]),
         )
 
-    elif query.data == "broadcast":
-        context.user_data["broadcast_mode"] = True
-
+    elif data == "wallet":
         await query.edit_message_text(
-            "📢 پیام همگانی\n\n"
-            "پیامی که می‌خواهی برای کاربران ارسال شود را "
-            "در پیام بعدی بفرست.\n\n"
-            "برای لغو، /cancel را بزن."
+            "💰 کیف پول\n\n"
+            "💵 موجودی حساب: 0 تومان\n\n"
+            "بخش افزایش موجودی در حال آماده‌سازی است.",
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton(
+                        "🔙 بازگشت",
+                        callback_data="back_home",
+                    )
+                ],
+            ]),
         )
 
+    elif data == "plans":
+        await query.edit_message_text(
+            "💎 پلن‌های VirangarVPN\n\n"
+            "📦 پلن‌های فروش در حال آماده‌سازی هستند.\n\n"
+            "به‌زودی می‌توانید حجم و مدت سرویس را انتخاب کنید.",
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton(
+                        "🛒 خرید VPN",
+                        callback_data="buy_vpn",
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        "🔙 بازگشت",
+                        callback_data="back_home",
+                    )
+                ],
+            ]),
+        )
+
+    elif data == "support":
+        await query.edit_message_text(
+            "📞 پشتیبانی VirangarVPN\n\n"
+            "اگر مشکلی در خرید یا استفاده از سرویس دارید، "
+            "با پشتیبانی در ارتباط باشید.\n\n"
+            "🕐 پاسخگویی در سریع‌ترین زمان ممکن.",
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton(
+                        "🔙 بازگشت",
+                        callback_data="back_home",
+                    )
+                ],
+            ]),
+        )
+
+    elif data == "help":
+        await query.edit_message_text(
+            "ℹ️ راهنمای VirangarVPN\n\n"
+            "🛒 خرید VPN\n"
+            "برای خرید سرویس وارد بخش خرید شوید.\n\n"
+            "📦 سرویس‌های من\n"
+            "سرویس‌های خریداری‌شده شما در این بخش نمایش داده می‌شوند.\n\n"
+            "💰 کیف پول\n"
+            "موجودی حساب شما در این قسمت نمایش داده می‌شود.\n\n"
+            "📞 پشتیبانی\n"
+            "برای دریافت کمک با پشتیبانی در ارتباط باشید.",
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton(
+                        "🔙 بازگشت",
+                        callback_data="back_home",
+                    )
+                ],
+            ]),
+        )
+
+    elif data == "back_home":
+        await query.edit_message_text(
+            "🔥 منوی اصلی VirangarVPN\n\n"
+            "👇 یکی از گزینه‌های زیر را انتخاب کنید:",
+            reply_markup=user_menu(),
+        )
+
+
+# =========================
+# BROADCAST
+# =========================
 
 async def receive_broadcast(
     update: Update,
@@ -145,11 +367,15 @@ async def receive_broadcast(
 
     for target_id in users:
         try:
-            await update.message.copy(chat_id=target_id)
+            await update.message.copy(
+                chat_id=target_id
+            )
+
             sent += 1
 
         except Exception as error:
             failed += 1
+
             logger.warning(
                 "Broadcast failed for %s: %s",
                 target_id,
@@ -167,13 +393,24 @@ async def receive_broadcast(
     )
 
 
-async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# =========================
+# CANCEL
+# =========================
+
+async def cancel(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+):
     context.user_data["broadcast_mode"] = False
 
     await update.message.reply_text(
         "❌ عملیات لغو شد."
     )
 
+
+# =========================
+# ERROR HANDLER
+# =========================
 
 async def error_handler(
     update: object,
@@ -184,6 +421,10 @@ async def error_handler(
         exc_info=context.error,
     )
 
+
+# =========================
+# MAIN
+# =========================
 
 def main():
     if not BOT_TOKEN:
@@ -200,19 +441,30 @@ def main():
     )
 
     application.add_handler(
-        CommandHandler("start", start)
+        CommandHandler(
+            "start",
+            start,
+        )
     )
 
     application.add_handler(
-        CommandHandler("admin", admin)
+        CommandHandler(
+            "admin",
+            admin,
+        )
     )
 
     application.add_handler(
-        CommandHandler("cancel", cancel)
+        CommandHandler(
+            "cancel",
+            cancel,
+        )
     )
 
     application.add_handler(
-        CallbackQueryHandler(callback_handler)
+        CallbackQueryHandler(
+            callback_handler
+        )
     )
 
     application.add_handler(
@@ -222,9 +474,13 @@ def main():
         )
     )
 
-    application.add_error_handler(error_handler)
+    application.add_error_handler(
+        error_handler
+    )
 
-    logger.info("🔥 VirangarVPN Bot started.")
+    logger.info(
+        "🔥 VirangarVPN Bot started."
+    )
 
     application.run_polling()
 
