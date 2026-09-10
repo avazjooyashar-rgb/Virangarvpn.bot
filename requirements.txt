@@ -1,2 +1,6 @@
-python-telegram-bot==22.5
+pyTelegramBotAPI==4.29.1
+SQLAlchemy==2.0.43
+psycopg2-binary==2.9.10
 python-dotenv==1.1.1
+APScheduler==3.11.0
+httpx==0.28.1
