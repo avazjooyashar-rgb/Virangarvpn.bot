@@ -1,10 +1,47 @@
 import telebot
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.database.models import Admin, Role
-from app.keyboards.admin import back_to_admin_keyboard
+from app.database.models import Admin
 from app.utils.permissions import is_super_admin
+
+
+def admins_keyboard(admins) -> InlineKeyboardMarkup:
+    keyboard = InlineKeyboardMarkup(row_width=1)
+
+    keyboard.add(
+        InlineKeyboardButton(
+            "➕ افزودن ادمین جدید",
+            callback_data="admin_add",
+        )
+    )
+
+    keyboard.add(
+        InlineKeyboardButton(
+            "🛡 تعیین نقش ادمین‌ها",
+            callback_data="admin_admin_roles",
+        )
+    )
+
+    for admin in admins:
+        status = "🟢" if admin.is_active else "🔴"
+
+        keyboard.add(
+            InlineKeyboardButton(
+                f"{status} {admin.telegram_id} | {admin.role}",
+                callback_data=f"admin_status_manage:{admin.id}",
+            )
+        )
+
+    keyboard.add(
+        InlineKeyboardButton(
+            "🔙 بازگشت به مدیریت",
+            callback_data="admin_dashboard",
+        )
+    )
+
+    return keyboard
 
 
 def register_admin_management_handlers(
@@ -16,6 +53,7 @@ def register_admin_management_handlers(
         func=lambda call: call.data == "admin_admins"
     )
     def admin_admins(call):
+
         db: Session = db_factory()
 
         try:
@@ -31,49 +69,28 @@ def register_admin_management_handlers(
                 return
 
             admins = db.scalars(
-                select(Admin)
-                .order_by(Admin.id)
+                select(Admin).order_by(Admin.id)
             ).all()
 
-            if not admins:
+            if admins:
                 text = (
                     "👮 <b>مدیریت ادمین‌ها</b>\n\n"
-                    "هنوز هیچ ادمینی ثبت نشده است."
+                    "از گزینه‌های زیر استفاده کنید:"
                 )
             else:
-                lines = [
-                    "👮 <b>مدیریت ادمین‌ها</b>\n"
-                ]
-
-                for admin in admins:
-                    status = "🟢 فعال" if admin.is_active else "🔴 غیرفعال"
-
-                    lines.append(
-                        f"• <code>{admin.telegram_id}</code>\n"
-                        f"  نقش: <b>{admin.role}</b>\n"
-                        f"  وضعیت: {status}\n"
-                    )
-
-                text = "\n".join(lines)
+                text = (
+                    "👮 <b>مدیریت ادمین‌ها</b>\n\n"
+                    "هنوز ادمینی ثبت نشده است."
+                )
 
             bot.edit_message_text(
                 text,
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
-                reply_markup=back_to_admin_keyboard(),
+                reply_markup=admins_keyboard(admins),
             )
 
             bot.answer_callback_query(call.id)
 
         finally:
             db.close()
-
-    @bot.callback_query_handler(
-        func=lambda call: call.data == "admin_users"
-    )
-    def admin_users_placeholder(call):
-        bot.answer_callback_query(
-            call.id,
-            "🚧 بخش مدیریت کاربران در مرحله بعد فعال می‌شود.",
-            show_alert=True,
-        )
