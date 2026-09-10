@@ -1,0 +1,127 @@
+import telebot
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+
+def admin_main_keyboard() -> InlineKeyboardMarkup:
+    keyboard = InlineKeyboardMarkup(row_width=2)
+
+    keyboard.add(
+        InlineKeyboardButton(
+            "👥 مدیریت کاربران",
+            callback_data="admin_users",
+        ),
+        InlineKeyboardButton(
+            "👮 مدیریت ادمین‌ها",
+            callback_data="admin_admins",
+        ),
+    )
+
+    keyboard.add(
+        InlineKeyboardButton(
+            "🛒 مدیریت فروشگاه",
+            callback_data="admin_shop",
+        ),
+        InlineKeyboardButton(
+            "💳 پرداخت‌ها",
+            callback_data="admin_payments",
+        ),
+    )
+
+    keyboard.add(
+        InlineKeyboardButton(
+            "🖥 پنل‌ها",
+            callback_data="admin_panels",
+        ),
+        InlineKeyboardButton(
+            "🌐 نودها",
+            callback_data="admin_nodes",
+        ),
+    )
+
+    keyboard.add(
+        InlineKeyboardButton(
+            "📢 کانال‌های اجباری",
+            callback_data="admin_channels",
+        ),
+        InlineKeyboardButton(
+            "🎁 کدهای تخفیف",
+            callback_data="admin_coupons",
+        ),
+    )
+
+    keyboard.add(
+        InlineKeyboardButton(
+            "📣 پیام همگانی",
+            callback_data="admin_broadcast",
+        ),
+        InlineKeyboardButton(
+            "🎫 پشتیبانی",
+            callback_data="admin_support",
+        ),
+    )
+
+    keyboard.add(
+        InlineKeyboardButton(
+            "🏠 صفحه اصلی",
+            callback_data="admin_homepage",
+        ),
+        InlineKeyboardButton(
+            "📊 آمار",
+            callback_data="admin_analytics",
+        ),
+    )
+
+    keyboard.add(
+        InlineKeyboardButton(
+            "💾 بکاپ",
+            callback_data="admin_backups",
+        ),
+        InlineKeyboardButton(
+            "⚙️ تنظیمات",
+            callback_data="admin_settings",
+        ),
+    )
+
+    keyboard.add(
+        InlineKeyboardButton(
+            "❌ بستن پنل",
+            callback_data="admin_close",
+        )
+    )
+
+    return keyboard
+
+
+def back_to_admin_keyboard() -> InlineKeyboardMarkup:
+    keyboard = InlineKeyboardMarkup()
+
+    keyboard.add(
+        InlineKeyboardButton(
+            "🔙 بازگشت به مدیریت",
+            callback_data="admin_dashboard",
+        )
+    )
+
+    return keyboard
+
+
+def force_membership_keyboard(channels) -> InlineKeyboardMarkup:
+    keyboard = InlineKeyboardMarkup()
+
+    for channel in channels:
+        if channel.invite_link:
+            keyboard.add(
+                InlineKeyboardButton(
+                    f"📢 عضویت در {channel.title}",
+                    url=channel.invite_link,
+                )
+            )
+
+    keyboard.add(
+        InlineKeyboardButton(
+            "✅ بررسی عضویت",
+            callback_data="admin_check_membership",
+        )
+    )
+
+    return keyboard
