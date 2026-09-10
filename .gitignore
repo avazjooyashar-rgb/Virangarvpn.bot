@@ -1,14 +1,10 @@
 .env
-virangar.db
-
 __pycache__/
 *.pyc
-*.pyo
-
-venv/
 .venv/
-
+venv/
 .idea/
 .vscode/
-
+logs/
+backups/
 *.log
